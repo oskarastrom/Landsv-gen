@@ -1,5 +1,4 @@
 # Landsv-gen
-Koden till Gymnasiearbetet "Landsvägen"
 För att köra programmet:
 1. Starta Julia-applicationen (nedladdning på https://julialang.org/)
 2. Ladda ned filen LandsvagenComplete.jl
