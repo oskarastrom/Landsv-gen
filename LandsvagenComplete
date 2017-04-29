@@ -1,0 +1,290 @@
+# Ett-stegs-expansion
+function expand1(g,p)
+  n = size(g,1);
+  G = [g[1:p-1,1:p-1] zeros(Int8,p-1,1) g[1:p-1,p:n];
+      zeros(Int8,1,p-1) zeros(Int8,1,1) zeros(Int8,1,n-p+1);
+      g[p:n,1:p-1] zeros(Int8,n-p+1,1) g[p:n,p:n]];
+  G[p+1,p]=1;
+  G[p,p+1]=1;
+  return G
+end
+
+# Tre-stegs-expansion
+function expand2(g,p)
+  n = size(g,1);
+  G = [g[1:p-1,1:p-1] zeros(Int8,p-1,1) g[1:p-1,p+1:p+2] g[1:p-1,p:p] g[1:p-1,p+3:n];
+      zeros(Int8,1,n+1);
+      g[p+1:p+2,1:p-1] zeros(Int8,2,1) g[p+1:p+2,p+1:p+2] g[p+1:p+2,p:p] g[p+1:p+2,p+3:n];
+      g[p:p,1:p-1] zeros(Int8,1,1) g[p:p,p+1:p+2] g[p:p,p:p] g[p:p,p+3:n];
+      g[p+3:n,1:p-1] zeros(Int8,n-p-2,1) g[p+3:n,p+1:p+2] g[p+3:n,p:p] g[p+3:n,p+3:n]]
+  G[p,p+3] = 1
+  G[p+3,p] = 1
+  return G
+end
+
+# Ny lista av större längd
+function newList(list)
+  tempGraph = [0 0; 0 0];
+  tempList = [tempGraph];
+  for g = list
+    n = size(g,1);
+    for p = 1:n
+      G = expand1(g,p);
+      push!(tempList, G);
+    end
+  end
+  for g = list
+    n = size(g,1);
+    for p = 1:n-2
+      G = expand2(g,p);
+      push!(tempList, G);
+    end
+  end
+  deleteat!(tempList,findfirst(tempList,tempGraph))
+  return tempList;
+end
+
+# Översättning från Greed-form till grannmatris
+function translate(deck)
+  n = length(deck)
+  g = zeros(Int8,n,n)
+  for a = 1:n
+    for b = 1:n
+      if deck[a][1] == deck[b][1]
+        g[a,b] = 1
+      end
+      if deck[a][2] == deck[b][2]
+        g[a,b] = 1
+      end
+    end
+  end
+  for a = 1:n
+    g[a,a] = 0
+  end
+  return g
+end
+
+# Jämförning av landsvägen mot en matrislista
+function transCheck(graph,list)
+listCount = 0
+  for a = list
+    tempGraph = graph - a
+    graphCount = 0
+      for x = tempGraph
+        if x < 0
+          graphCount = graphCount + 1
+        end
+      end
+    if graphCount == 0
+      listCount = listCount + 1
+    end
+  end
+  if listCount > 0
+    return "success"
+  else
+    return "failure"
+  end
+end
+
+# Vilka drag finns för landsvägen
+function moves(deck)
+  n = size(deck,1);
+  counter = 0;
+  moveList = []
+  for a = 1:(n-1)
+    c1 = deck[a]
+    c2 = deck[(a+1)]
+    if c1[1] == c2[1]
+      counter = counter+1;
+      tempMove = [a,(a+1)];
+      push!(moveList,tempMove);
+    end;
+    if c1[2] == c2[2]
+      counter = counter+1;
+      tempMove = [a,(a+1)];
+      push!(moveList,tempMove);
+    end;
+  end;
+  for a = 1:(n-3)
+    c1 = deck[a]
+    c2 = deck[(a+3)]
+    if c1[1] == c2[1]
+      counter = counter+1;
+      tempMove = [a,(a+3)]
+      push!(moveList,tempMove)
+    end;
+    if c1[2] == c2[2]
+      counter = counter+1;
+      tempMove = [a,(a+3)]
+      push!(moveList,tempMove)
+    end;
+  end;
+return moveList;
+end;
+
+function numberMoves(deck)
+  n = size(moves(deck),1)
+  return n
+end;
+
+# Utför ett drag
+function makeMove(deck,move)
+  c1 = move[1];
+  c2 = move[2];
+  tempDeck = deepcopy(deck)
+  tempDeck[c1] = tempDeck[c2];
+  deleteat!(tempDeck,c2);
+return tempDeck;
+end;
+
+# Utför alla drag
+function makeMoves(deck,moveList)
+  n = size(moveList,1)
+  tempDeckList = []
+  for a = 1:n
+    move = moveList[a]
+    tempDeck = makeMove(deck,move)
+    push!(tempDeckList,tempDeck)
+  end
+return tempDeckList
+end
+
+# Greed-kontroll
+function greedCheck(deck)
+  moveList = moves(deck)
+  n = size(moveList,1)
+  m = 0
+  greedList = []
+  for a = 1:n
+    move = moveList[a]
+    tempDeck = makeMove(deck,move)
+    if numberMoves(tempDeck) >= m
+      m = numberMoves(tempDeck)
+      push!(greedList,move)
+      s = size(greedList,1)
+      for b = s:-1:1
+        move = greedList[b]
+        tempDeck = makeMove(deck,move)
+        if numberMoves(tempDeck) < m
+          deleteat!(greedList,b)
+        end;
+      end;
+    end;
+  end;
+return greedList;
+end;
+
+# Greed-modul
+function moduleGreed(deck)
+  gDeck = deepcopy(deck)
+  moveList = greedCheck(gDeck)
+  gDeckList = makeMoves(gDeck,moveList)
+  return gDeckList
+end
+
+function greed7step(deck)
+  tempDeck = [[1,1]]
+  deckCount = [tempDeck]
+  deckRank = [tempDeck]
+  gDeckList1 = moduleGreed(deck)
+  for gDeck1 in gDeckList1
+    gDeckList2 = moduleGreed(gDeck1)
+    for gDeck2 in gDeckList2
+      gDeckList3 = moduleGreed(gDeck2)
+      for gDeck3 in gDeckList3
+        gDeckList4 = moduleGreed(gDeck3)
+        for gDeck4 in gDeckList4
+          gDeckList5 = moduleGreed(gDeck4)
+          for gDeck5 in gDeckList5
+            gDeckList6 = moduleGreed(gDeck5)
+            for gDeck6 in gDeckList6
+              gDeckList7 = moduleGreed(gDeck6)
+              for gDeck7 in gDeckList7
+                n = numberMoves(gDeck7)
+                if n > numberMoves(deckCount[1])
+                  empty!(deckCount)
+                  push!(deckCount,gDeck7)
+                  empty!(deckRank)
+                  push!(deckRank,gDeck1)
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  return deckRank[1]
+end
+
+# Skapa en slumpmässig landsväg
+function newDeck()
+  cleanDeck = [];
+  for suit = 1:4
+    for value = 1:13
+      newCard = [suit; value]
+      push!(cleanDeck, newCard)
+    end;
+  end;
+  # Shuffle Deck
+  order = randperm(52);
+  deck = []
+  for q = 1:52
+    placeholder = [0; 0]
+    push!(deck,[0; 0])
+  end;
+  count = 0;
+  for i = order
+    count = count + 1
+    deck[count,1] = cleanDeck[i,1]
+  end;
+return deck;
+end
+
+
+# Startfunktionen
+function greedStartUp()
+  g1 = zeros(Int8,3,3)
+  g1[1,3] = 1
+  g1[2,3] = 1
+  g1[3,1] = 1
+  g1[3,2] = 1
+  g2 = zeros(Int8,3,3)
+  g2[1,2] = 1
+  g2[2,3] = 1
+  g2[2,1] = 1
+  g2[3,2] = 1
+  list3 = [g1,g2]
+  list4 = newList(list3)
+  list5 = newList(list4)
+  list6 = newList(list5)
+  list7 = newList(list6)
+  list8 = newList(list7)
+  list9 = newList(list8)
+  list10 = newList(list9)
+  return list10
+end
+
+# Slutgiltiga funktionen
+function fullGreed(deck)
+  tempDeck = deepcopy(deck)
+  tempDeckList = [tempDeck]
+  while size(tempDeck,1) > 10
+    tempDeck = greed7step(tempDeck)
+    if tempDeck != [[1,1]]
+      empty!(tempDeckList)
+      push!(tempDeckList,tempDeck)
+    end
+  end
+  gDeck = tempDeckList[1]
+  while size(gDeck,1) > 10 && isempty(greedCheck(gDeck)) == false
+    moveList = greedCheck(gDeck)
+    move = moveList[1]
+    gDeck = makeMove(gDeck,move)
+  end
+  if size(gDeck,1) == 10
+    gGraph = translate(gDeck)
+    result = transCheck(gGraph,List10)
+  end
+  return result
+end
